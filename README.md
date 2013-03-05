@@ -26,6 +26,7 @@ installed.
     $ pip install hiredis [6]
     $ go get github.com/garyburd/redigo/redis [7]
     $ go get github.com/alecthomas/gozmq [8]
+	$ go get github.com/pebbe/zmq3 [9]
 
 1. <http://www.zeromq.org>
 2. <http://redis.io>
@@ -35,6 +36,7 @@ installed.
 6. <https://github.com/pietern/hiredis-py>
 7. <https://github.com/garyburd/redigo>
 8. <https://github.com/alecthomas/gozmq>
+9. <https://github.com/pebbe/zmq3>
 
 Contributions
 =============
