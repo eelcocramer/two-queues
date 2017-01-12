@@ -28,7 +28,7 @@ def run_clients(lang, *args):
         broker = Popen(popen_args("run_broker.%s" % lang), stderr=PIPE)
     args = popen_args("test_client.%s" % lang, *args)
     results = []
-    num_runs = cpu_count() * 2
+    num_runs = 2 #cpu_count() * 2
     print " ".join(args)
     for clients in range(1, num_runs + 1):
         bar = ("#" * clients).ljust(num_runs)
@@ -84,11 +84,11 @@ with open("plot.p", "r") as f:
     plotfile = f.read()
 line = '"%s.dat" using ($0+1):1 with lines title "%s" lw 2 lt rgb "%s"'
 for name, names in plots.items():
-    name = output_path(name)
+    relname = output_path(name)
     with open(output_path(names[0] + ".dat"), "r") as f:
         clients = len(f.read().split())
-    with open(name + ".p", "w") as f:
+    with open(relname + ".p", "w") as f:
         lines = ", ".join([line % (l, l.replace("_", " "), colours[l])
                            for l in names])
         f.write(plotfile % {"name": name, "lines": lines, "clients": clients})
-    Popen(["gnuplot", name + ".p"], stderr=PIPE)
+    Popen(["gnuplot", name + ".p"], stderr=PIPE, cwd='./output/')

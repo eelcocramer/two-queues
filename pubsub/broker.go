@@ -1,7 +1,8 @@
 package pubsub
 
 import (
-	zmq "github.com/alecthomas/gozmq"
+	"fmt"
+	zmq "github.com/pebbe/zmq4"
 	"time"
 )
 
@@ -16,7 +17,10 @@ func Serve(quiet bool) {
 	last := time.Now()
 	messages := 0
 	for {
-		message, _ := receiver.Recv(0)
+		message, err := receiver.Recv(0)
+		if err != nil {
+			fmt.Println(err)
+		}
 		sender.Send(message, 0)
 		if !quiet {
 			messages += 1

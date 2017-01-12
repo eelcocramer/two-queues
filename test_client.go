@@ -4,6 +4,7 @@ import (
 	"./pubsub"
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"runtime"
 	"sort"
@@ -30,7 +31,11 @@ func NewClient() pubsub.Client {
 	if useRedis {
 		client = pubsub.NewRedisClient(host)
 	} else {
-		client = pubsub.NewZMQClient(host)
+		var err error
+		client, err = pubsub.NewZMQClient(host)
+		if err != nil {
+			log.Panicln(err)
+		}
 	}
 	return client
 }
@@ -41,7 +46,9 @@ func Publisher() {
 	message := strings.Repeat("x", messageSize)
 	for {
 		channel := channels[rand.Intn(len(channels))]
-		client.Publish(channel, message)
+		if err := client.Publish(channel, message); err != nil {
+			log.Panicln(err)
+		}
 	}
 }
 
@@ -50,19 +57,25 @@ func Publisher() {
 func Subscriber() {
 	client := NewClient()
 	for _, channel := range channels {
-		client.Subscribe(channel)
+		if err := client.Subscribe(channel); err != nil {
+			log.Panicln(err)
+		}
 	}
 	last := time.Now()
 	messages := 0
 	for {
-		client.Receive()
+		if _, err := client.Receive(); err != nil {
+			log.Panicln(err)
+		}
 		messages += 1
 		now := time.Now()
 		if now.Sub(last).Seconds() > 1 {
 			if !quiet {
 				println(messages, "msg/sec")
 			}
-			client.Publish("metrics", strconv.Itoa(messages))
+			if err := client.Publish("metrics", strconv.Itoa(messages)); err != nil {
+				log.Panicln(err)
+			}
 			last = now
 			messages = 0
 		}
@@ -81,11 +94,16 @@ func RunWorkers(target func()) {
 // it until --num-seconds has passed.
 func GetMetrics() []int {
 	client := NewClient()
-	client.Subscribe("metrics")
+	if err := client.Subscribe("metrics"); err != nil {
+		log.Panicln(err)
+	}
 	metrics := []int{}
 	start := time.Now()
 	for time.Now().Sub(start).Seconds() <= numSeconds {
-		message := client.Receive()
+		message, err := client.Receive()
+		if err != nil {
+			log.Panicln(err)
+		}
 		if message.Type == "message" {
 			messages, _ := strconv.Atoi(message.Data)
 			metrics = append(metrics, messages)
