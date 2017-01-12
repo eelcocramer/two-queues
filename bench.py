@@ -24,11 +24,11 @@ def run_clients(lang, *args):
     from 1 to cpus * 2 as the number of clients, returning the
     median messsages per second for each.
     """
-    if "--redis" not in args:
+    if "--broker" in args:
         broker = Popen(popen_args("run_broker.%s" % lang), stderr=PIPE)
     args = popen_args("test_client.%s" % lang, *args)
     results = []
-    num_runs = 2 #cpu_count() * 2
+    num_runs = cpu_count() * 2
     print " ".join(args)
     for clients in range(1, num_runs + 1):
         bar = ("#" * clients).ljust(num_runs)
@@ -37,7 +37,7 @@ def run_clients(lang, *args):
         out = check_output(args + ["--num-clients=%s" % clients], stderr=PIPE)
         results.append(out.split(" ")[0].strip())
     stdout.write("\n")
-    if "--redis" not in args:
+    if "--broker" in args:
         broker.kill()
     return results
 
@@ -45,7 +45,8 @@ def run_clients(lang, *args):
 runs = {
     "py_redis": ["py", "--redis", "--unbuffered"],
     "py_redis_buffered": ["py", "--redis"],
-    "py_zmq": ["py"],
+    "py_zmq": ["py", "--broker"],
+    "py_mqtt": ["py", "--mqtt"],
     "go_redis": ["go", "--redis"],
     "go_zmq": ["go"],
 }
@@ -55,6 +56,7 @@ colours = {
     "py_redis": "red",
     "py_redis_buffered": "green",
     "py_zmq": "blue",
+    "py_mqtt": "coral",
     "go_redis": "violet",
     "go_zmq": "orange",
 }
@@ -64,7 +66,9 @@ plots = {
     "two-queues-1": ["py_zmq", "py_redis"],
     "two-queues-2": ["py_zmq", "py_redis", "py_redis_buffered"],
     "two-queues-3": ["py_zmq", "py_redis", "py_redis_buffered",
-                     "go_zmq", "go_redis"],
+                     "py_mqtt"],
+    "two-queues-4": ["py_zmq", "py_redis", "py_redis_buffered",
+                     "py_mqtt", "go_zmq", "go_redis"],
 }
 
 # Store all results in an output directory.

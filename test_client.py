@@ -9,6 +9,7 @@ import redis
 
 import buffered_redis
 import zmq_pubsub
+import mqtt_pubsub
 
 
 def new_client():
@@ -21,6 +22,8 @@ def new_client():
             Client = redis.Redis
         else:
             Client = buffered_redis.BufferedRedis
+    elif args.mqtt:
+        Client = mqtt_pubsub.MQTTPubSub
     else:
         Client = zmq_pubsub.ZMQPubSub
     return Client(host=args.host)
@@ -95,7 +98,9 @@ if __name__ == "__main__":
     parser.add_argument("--num-channels", type=int, default=50)
     parser.add_argument("--message-size", type=int, default=20)
     parser.add_argument("--redis", action="store_true")
+    parser.add_argument("--mqtt", action="store_true")
     parser.add_argument("--unbuffered", action="store_true")
+    parser.add_argument("--broker", action="store_true")
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
     channels = [str(i) for i in range(args.num_channels)]
