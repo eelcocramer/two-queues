@@ -20,6 +20,8 @@ var (
 	numChannels int
 	messageSize int
 	useRedis    bool
+	useMangos   bool
+	broker      bool
 	quiet       bool
 	channels    []string
 )
@@ -30,6 +32,12 @@ func NewClient() pubsub.Client {
 	var client pubsub.Client
 	if useRedis {
 		client = pubsub.NewRedisClient(host)
+	} else if useMangos {
+		var err error
+		client, err = pubsub.NewMangosClient(host)
+		if err != nil {
+			log.Panicln(err)
+		}
 	} else {
 		var err error
 		client, err = pubsub.NewZMQClient(host)
@@ -122,7 +130,9 @@ func main() {
 	flag.IntVar(&numChannels, "num-channels", 50, "")
 	flag.IntVar(&messageSize, "message-size", 20, "")
 	flag.BoolVar(&useRedis, "redis", false, "")
+	flag.BoolVar(&useMangos, "mangos", false, "")
 	flag.BoolVar(&quiet, "quiet", false, "")
+	flag.BoolVar(&broker, "broker", false, "")
 	flag.Parse()
 	for i := 0; i < numChannels; i++ {
 		channels = append(channels, strconv.Itoa(i))

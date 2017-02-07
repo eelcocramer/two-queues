@@ -28,6 +28,7 @@ installed.
     $ pip install paho-mqtt [8]
     $ go get github.com/garyburd/redigo/redis [9]
     $ go get github.com/pebbe/zmq4 [10]
+    $ go get -u github.com/go-mangos/mangos [11]
 
 1. <http://www.zeromq.org>
 2. <http://redis.io>
@@ -39,6 +40,23 @@ installed.
 8. <https://pypi.python.org/pypi/paho-mqtt>
 9. <https://github.com/garyburd/redigo>
 10. <https://github.com/pebbe/zmq4>
+11. <https://github.com/go-mangos/mangos>
+
+Running
+=======
+
+To run the test use `python bench.py`. Before running the benchmark start the brokers:
+
+* `redis-server`
+* `go run run_broker.go`
+* `go run run_broker.go --mangos`
+
+Currently the `bench.py` script does not start the brokers for `zmq` and `mangos` automatically.
+
+Troubleshooting
+===============
+
+Increase the number op open files in OSX using: `ulimit -n 4096`
 
 Props
 =====

@@ -25,7 +25,7 @@ def run_clients(lang, *args):
     median messsages per second for each.
     """
     if "--broker" in args:
-        broker = Popen(popen_args("run_broker.%s" % lang), stderr=PIPE)
+        broker = Popen(popen_args("run_broker.%s" % lang, *args), stderr=PIPE)
     args = popen_args("test_client.%s" % lang, *args)
     results = []
     num_runs = cpu_count() * 2
@@ -48,6 +48,7 @@ runs = {
     "py_zmq": ["py", "--broker"],
     "py_mqtt": ["py", "--mqtt"],
     "go_redis": ["go", "--redis"],
+    "go_mangos": ["go", "--mangos"],
     "go_zmq": ["go"],
 }
 
@@ -59,6 +60,7 @@ colours = {
     "py_mqtt": "coral",
     "go_redis": "violet",
     "go_zmq": "orange",
+    "go_mangos": "black"
 }
 
 # Groups of runs mapped to each graph.
@@ -69,6 +71,7 @@ plots = {
                      "py_mqtt"],
     "two-queues-4": ["py_zmq", "py_redis", "py_redis_buffered",
                      "py_mqtt", "go_zmq", "go_redis"],
+    "two-queues-5": [ "go_zmq", "go_redis", "go_mangos"],
 }
 
 # Store all results in an output directory.

@@ -3,6 +3,11 @@ package pubsub
 import (
 	"fmt"
 	"github.com/garyburd/redigo/redis"
+	mangos "github.com/go-mangos/mangos"
+	push "github.com/go-mangos/mangos/protocol/push"
+	sub "github.com/go-mangos/mangos/protocol/sub"
+	"github.com/go-mangos/mangos/transport/ipc"
+	"github.com/go-mangos/mangos/transport/tcp"
 	zmq "github.com/pebbe/zmq4"
 	"strings"
 	"sync"
@@ -39,6 +44,12 @@ type ZMQClient struct {
 	ctx *zmq.Context
 	pub *zmq.Socket
 	sub *zmq.Socket
+}
+
+// Mangos client - just defines the pub and sub Mangos sockets
+type MangosClient struct {
+	pub mangos.Socket
+	sub mangos.Socket
 }
 
 // Returns a new Redis client. The underlying redigo package uses
@@ -126,6 +137,64 @@ func (client *ZMQClient) Publish(channel, message string) error {
 
 func (client *ZMQClient) Receive() (Message, error) {
 	message, err := client.sub.Recv(0)
+	if err != nil {
+		return Message{}, err
+	}
+	parts := strings.SplitN(string(message), " ", 2)
+	return Message{Type: "message", Channel: parts[0], Data: parts[1]}, nil
+}
+
+func NewMangosClient(host string) (*MangosClient, error) {
+	var err error
+	var p mangos.Socket
+	p, err = push.NewSocket()
+
+	if p, err = push.NewSocket(); err != nil {
+		return nil, err
+	}
+
+	p.AddTransport(ipc.NewTransport())
+	p.AddTransport(tcp.NewTransport())
+	p.Dial(fmt.Sprintf("tcp://%s:%d", host, 40899))
+
+	var s mangos.Socket
+	s, err = sub.NewSocket()
+
+	if s, err = sub.NewSocket(); err != nil {
+		return nil, err
+	}
+
+	s.AddTransport(ipc.NewTransport())
+	s.AddTransport(tcp.NewTransport())
+	s.Dial(fmt.Sprintf("tcp://%s:%d", host, 40898))
+	return &MangosClient{p, s}, nil
+}
+
+func (client *MangosClient) Subscribe(channels ...interface{}) error {
+	for _, channel := range channels {
+		if err := client.sub.SetOption(mangos.OptionSubscribe, channel.(string)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (client *MangosClient) Unsubscribe(channels ...interface{}) error {
+	for _, channel := range channels {
+		if err := client.sub.SetOption(mangos.OptionUnsubscribe, channel.(string)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (client *MangosClient) Publish(channel, message string) error {
+	err := client.pub.Send([]byte(channel + " " + message))
+	return err
+}
+
+func (client *MangosClient) Receive() (Message, error) {
+	message, err := client.sub.Recv()
 	if err != nil {
 		return Message{}, err
 	}
