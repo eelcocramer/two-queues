@@ -45,13 +45,14 @@ installed.
 Running
 =======
 
-To run the test use `python bench.py`. Before running the benchmark start the brokers:
+To run the test use `python bench.py`.
+
+Before running the benchmark start the brokers:
 
 * `redis-server`
-* `go run run_broker.go`
-* `go run run_broker.go --mangos`
+* `mosquitto`
 
-Currently the `bench.py` script does not start the brokers for `zmq` and `mangos` automatically.
+The custom brokers for `pyzmq`, `go-zmq` and `go-mangos` are started automatically by the benchmark.
 
 Troubleshooting
 ===============

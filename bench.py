@@ -48,8 +48,8 @@ runs = {
     "py_zmq": ["py", "--broker"],
     "py_mqtt": ["py", "--mqtt"],
     "go_redis": ["go", "--redis"],
-    "go_mangos": ["go", "--mangos"],
-    "go_zmq": ["go"],
+    "go_mangos": ["go", "--mangos", "--broker"],
+    "go_zmq": ["go", "--broker"],
 }
 
 # Consistent graph colours defined for each of the runs.
@@ -65,13 +65,13 @@ colours = {
 
 # Groups of runs mapped to each graph.
 plots = {
-    "two-queues-1": ["py_zmq", "py_redis"],
-    "two-queues-2": ["py_zmq", "py_redis", "py_redis_buffered"],
-    "two-queues-3": ["py_zmq", "py_redis", "py_redis_buffered",
-                     "py_mqtt"],
-    "two-queues-4": ["py_zmq", "py_redis", "py_redis_buffered",
-                     "py_mqtt", "go_zmq", "go_redis"],
-    "two-queues-5": [ "go_zmq", "go_redis", "go_mangos"],
+    "two-queues-1": ["py_zmq", "py_redis", "go_mangos"],
+#    "two-queues-2": ["py_zmq", "py_redis", "py_redis_buffered"],
+#    "two-queues-3": ["py_zmq", "py_redis", "py_redis_buffered",
+#                     "py_mqtt"],
+#    "two-queues-4": ["py_zmq", "py_redis", "py_redis_buffered",
+#                     "py_mqtt", "go_zmq", "go_redis"],
+#    "two-queues-5": [ "go_zmq", "go_redis", "go_mangos"],
 }
 
 # Store all results in an output directory.
