@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 	mangos "github.com/go-mangos/mangos"
-	push "github.com/go-mangos/mangos/protocol/push"
+	pub "github.com/go-mangos/mangos/protocol/pub"
 	sub "github.com/go-mangos/mangos/protocol/sub"
 	"github.com/go-mangos/mangos/transport/ipc"
 	"github.com/go-mangos/mangos/transport/tcp"
+	nats "github.com/nats-io/go-nats"
 	zmq "github.com/pebbe/zmq4"
 	"strings"
 	"sync"
@@ -48,8 +49,17 @@ type ZMQClient struct {
 
 // Mangos client - just defines the pub and sub Mangos sockets
 type MangosClient struct {
-	pub mangos.Socket
-	sub mangos.Socket
+	pub  mangos.Socket
+	sub  mangos.Socket
+	host string
+}
+
+type NatsClient struct {
+	conn   *nats.Conn
+	pubsub *nats.EncodedConn
+	ch     chan *Message
+	subs   map[string]*nats.Subscription
+	sync.Mutex
 }
 
 // Returns a new Redis client. The underlying redigo package uses
@@ -147,9 +157,9 @@ func (client *ZMQClient) Receive() (Message, error) {
 func NewMangosClient(host string) (*MangosClient, error) {
 	var err error
 	var p mangos.Socket
-	p, err = push.NewSocket()
+	p, err = pub.NewSocket()
 
-	if p, err = push.NewSocket(); err != nil {
+	if p, err = pub.NewSocket(); err != nil {
 		return nil, err
 	}
 
@@ -166,8 +176,10 @@ func NewMangosClient(host string) (*MangosClient, error) {
 
 	s.AddTransport(ipc.NewTransport())
 	s.AddTransport(tcp.NewTransport())
-	s.Dial(fmt.Sprintf("tcp://%s:%d", host, 40898))
-	return &MangosClient{p, s}, nil
+
+	time.Sleep(time.Millisecond * 100)
+
+	return &MangosClient{p, s, host}, nil
 }
 
 func (client *MangosClient) Subscribe(channels ...interface{}) error {
@@ -176,6 +188,8 @@ func (client *MangosClient) Subscribe(channels ...interface{}) error {
 			return err
 		}
 	}
+
+	client.sub.Dial(fmt.Sprintf("tcp://%s:%d", client.host, 40898))
 	return nil
 }
 
@@ -189,15 +203,68 @@ func (client *MangosClient) Unsubscribe(channels ...interface{}) error {
 }
 
 func (client *MangosClient) Publish(channel, message string) error {
-	err := client.pub.Send([]byte(channel + " " + message))
+	msg := mangos.NewMessage(len(channel + " " + message))
+	msg.Body = []byte(channel + " " + message)
+	err := client.pub.SendMsg(msg)
 	return err
 }
 
 func (client *MangosClient) Receive() (Message, error) {
-	message, err := client.sub.Recv()
+	message, err := client.sub.RecvMsg()
 	if err != nil {
 		return Message{}, err
 	}
-	parts := strings.SplitN(string(message), " ", 2)
+	parts := strings.SplitN(string(message.Body), " ", 2)
 	return Message{Type: "message", Channel: parts[0], Data: parts[1]}, nil
+}
+
+// Returns a new Redis client. The underlying redigo package uses
+// Go's bufio package which will flush the connection when it contains
+// enough data to send, but we still need to set up some kind of timed
+// flusher, so it's done here with a goroutine.
+func NewNatsClient(host string) *NatsClient {
+	host = fmt.Sprintf("nats://%s:4222", host)
+	conn, _ := nats.Connect(host)
+	pubsub, _ := nats.NewEncodedConn(conn, nats.JSON_ENCODER)
+	client := NatsClient{conn, pubsub, make(chan *Message, 64), make(map[string]*nats.Subscription), sync.Mutex{}}
+	go func() {
+		for {
+			time.Sleep(200 * time.Millisecond)
+			client.Lock()
+			client.conn.Flush()
+			client.Unlock()
+		}
+	}()
+	return &client
+}
+
+func (client *NatsClient) Publish(channel, message string) error {
+	client.Lock()
+	m := &Message{Type: "message", Channel: channel, Data: message}
+	client.pubsub.Publish(channel, m)
+	client.Unlock()
+	return nil
+}
+
+func (client *NatsClient) Subscribe(channels ...interface{}) error {
+	for _, channel := range channels {
+		client.subs[channel.(string)], _ = client.pubsub.Subscribe(channel.(string), func(m *Message) {
+			client.ch <- m
+		})
+	}
+	return nil
+}
+
+func (client *NatsClient) Unsubscribe(channels ...interface{}) error {
+	for _, channel := range channels {
+		client.subs[channel.(string)].Unsubscribe()
+		delete(client.subs, channel.(string))
+	}
+
+	return nil
+}
+
+func (client *NatsClient) Receive() (Message, error) {
+	message := <-client.ch
+	return Message{"message", message.Channel, string(message.Data)}, nil
 }

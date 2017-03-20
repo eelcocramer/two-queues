@@ -28,7 +28,7 @@ def run_clients(lang, *args):
         broker = Popen(popen_args("run_broker.%s" % lang, *args), stderr=PIPE)
     args = popen_args("test_client.%s" % lang, *args)
     results = []
-    num_runs = cpu_count() * 2
+    num_runs = 8 #cpu_count() * 2
     print " ".join(args)
     for clients in range(1, num_runs + 1):
         bar = ("#" * clients).ljust(num_runs)
@@ -43,30 +43,35 @@ def run_clients(lang, *args):
 
 # All test_client runs and their cli args.
 runs = {
-    "py_redis": ["py", "--redis", "--unbuffered"],
-    "py_redis_buffered": ["py", "--redis"],
+#    "py_redis": ["py", "--redis", "--unbuffered"],
+#    "py_redis_buffered": ["py", "--redis"],
     "py_zmq": ["py", "--broker"],
     "py_mqtt": ["py", "--mqtt"],
-    "go_redis": ["go", "--redis"],
-    "go_mangos": ["go", "--mangos", "--broker"],
+#    "go_redis": ["go", "--redis"],
+#    "go_mangos": ["go", "--mangos", "--broker"],
     "go_zmq": ["go", "--broker"],
+    "go_nats": ["go", "--nats"],
+#    "py_nats": ["py", "--nats"],
 }
 
 # Consistent graph colours defined for each of the runs.
 colours = {
     "py_redis": "red",
     "py_redis_buffered": "green",
-    "py_zmq": "blue",
-    "py_mqtt": "coral",
+    "py_zmq": "green",
+    "py_mqtt": "blue",
     "go_redis": "violet",
     "go_zmq": "orange",
-    "go_mangos": "black"
+    "go_mangos": "black",
+    "atmel_go_nats": "violet",
+    "go_nats": "green",
+    "py_nats": "black"
 }
 
 # Groups of runs mapped to each graph.
 plots = {
-    "two-queues-1": ["py_zmq", "py_redis", "go_mangos"],
-#    "two-queues-2": ["py_zmq", "py_redis", "py_redis_buffered"],
+    "two-queues-1": ["py_mqtt", "go_nats", "go_zmq", "atmel_go_nats", "py_zmq" ],
+    "two-queues-2": ["py_mqtt", "atmel_go_nats"],
 #    "two-queues-3": ["py_zmq", "py_redis", "py_redis_buffered",
 #                     "py_mqtt"],
 #    "two-queues-4": ["py_zmq", "py_redis", "py_redis_buffered",

@@ -21,6 +21,7 @@ var (
 	messageSize int
 	useRedis    bool
 	useMangos   bool
+	useNats     bool
 	broker      bool
 	quiet       bool
 	channels    []string
@@ -38,6 +39,8 @@ func NewClient() pubsub.Client {
 		if err != nil {
 			log.Panicln(err)
 		}
+	} else if useNats {
+		client = pubsub.NewNatsClient(host)
 	} else {
 		var err error
 		client, err = pubsub.NewZMQClient(host)
@@ -131,6 +134,7 @@ func main() {
 	flag.IntVar(&messageSize, "message-size", 20, "")
 	flag.BoolVar(&useRedis, "redis", false, "")
 	flag.BoolVar(&useMangos, "mangos", false, "")
+	flag.BoolVar(&useNats, "nats", false, "")
 	flag.BoolVar(&quiet, "quiet", false, "")
 	flag.BoolVar(&broker, "broker", false, "")
 	flag.Parse()
